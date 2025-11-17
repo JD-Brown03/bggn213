@@ -1,0 +1,184 @@
+---
+title: "Class05: Data Viz with GGPLOT"
+author: "Jada Brown (PID: A15573784)"
+format: pdf
+---
+
+Today we are playing with plotting and graphics in R.
+
+There are lots of ways to make cool figures in R.
+There are "base" R graphics (`plot()`, `hist()`, `boxplot()`, etc,)
+
+There are also add-on packages like **ggplot**.
+
+```{r}
+head(cars, 3)
+```
+Let's plot this with "base" R:
+
+```{r}
+plot(cars)
+```
+
+```{r}
+head(mtcars)
+```
+
+Let's plot `mpg` vs `disp`
+```{r}
+plot(mtcars$mpg,mtcars$disp, pch = 17)
+```
+
+```{r}
+hist(mtcars$mpg)
+```
+
+##GGPLOT 
+
+The main function in the ggplot2 package is **ggplot()**
+First I need to install the **ggplot2** pacjage. I can install any package with the function, `install.packages("")`
+> **N.B** I never want to run `install packages("")` in my quarto document!!!
+
+```{r}
+library(ggplot2)
+ggplot(cars) +
+  aes(x = speed, y = dist) +
+  geom_point()
+```
+
+```{r}
+ggplot(cars) +
+  aes(speed) +
+  geom_histogram()
+```
+
+Every ggplot needs at least 3 things: 
+
+- The **data** (given with `ggplot(cars)`) +
+- The **aesthetic** mapping (given with `aes()`) +
+- The **geom_** given by `geom_point()`)
+
+> For simple canned graphs, "base" R is nearly always faster
+
+###Adding more layers
+
+Let's add a line and a title, subtitle and caption as well as custom axis labels
+
+```{r}
+ggplot(cars) +
+  aes(x = speed, y = dist) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  labs(title = "Silly Plot", subtitle = "Speed v Distance", x = "Speed (MPH)", y = "Distance (ft)", caption = "when is tea time anyway???") +
+  theme_bw()
+```
+
+## Plot some expression data
+
+Read data file from online URL
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/up_down_expression.txt"
+genes <- read.delim(url)
+head(genes)
+```
+> Q1. How many genes are in this wee data?
+
+There are `r nrow(genes)` in this dataset
+
+```{r}
+nrow(genes)
+ncol(genes)
+```
+
+> Q2. How many "up" regulated genes are there?
+
+```{r}
+sum(genes$State == "up")
+```
+
+OR
+
+```{r}
+table (genes$State)
+```
+
+There are `r sum(genes$State == "up")` up genes 
+
+
+
+```{r}
+p <- ggplot(genes) +
+  aes(x = Condition1, y = Condition2, col = State) +
+  geom_point() +
+  scale_color_manual(values = c("blue", "black", "red"))
+```
+
+```{r}
+p + labs(title="look at me")
+```
+
+Silly example of adding labels
+
+```{r}
+library(ggrepel)
+```
+
+
+```{r}
+ggplot(genes) +
+  aes(x = Condition1, 
+      y = Condition2, 
+      col = State,
+      label = Gene) +
+  geom_point() +
+  scale_color_manual(values = c("blue", "grey", "red")) +
+  geom_text_repel(max.overlaps = 60) +
+  theme_bw()
+```
+
+
+## Going Further
+
+```{r}
+# File location online
+url <- "https://raw.githubusercontent.com/jennybc/gapminder/master/inst/extdata/gapminder.tsv"
+
+gapminder <- read.delim(url)
+```
+
+```{r}
+head(gapminder)
+```
+
+```{r}
+tail(gapminder, 6)
+```
+
+A first plot
+
+```{r}
+ggplot(gapminder) +
+  aes(y = lifeExp, x = gdpPercap, col = continent) +
+  geom_point() +
+  facet_wrap(~continent) +
+  theme_bw()
+```
+
+```{r}
+p2 <- ggplot(gapminder) +
+  aes(y = lifeExp, x = gdpPercap, col = continent, size = pop) +
+  geom_point(alpha=0.5) +
+  facet_wrap(~continent) +
+  theme_bw() +
+  scale_size_area(max_size = 10)
+```
+
+```{r}
+library(patchwork)
+```
+
+```{r}
+(p | p2)
+```
+

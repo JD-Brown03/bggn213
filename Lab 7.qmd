@@ -1,0 +1,298 @@
+---
+title: "Class 7: Machine Learning"
+author: "Jada Brown (PID: A15573784)"
+format: pdf
+---
+
+Today we will begin our exploration of some "classical" machine learning approaches. We will start withh clustering:
+
+Ler's first make-up some data to cluster where we know what the answer should be.
+***use rnorm on normally distributed data, 3 arguments, 2 default settings
+```{r}
+hist(rnorm(1000))
+```
+
+Make a vector using `c`
+```{r}
+x <-c(rnorm(30, mean = -3), rnorm(30, mean = 3))
+y <- rev(x)
+y
+z <- cbind(x,y)
+```
+
+A wee peak at z with `plot()`
+```{r}
+plot(z)
+```
+
+The main function in "base" R for K-means clustering is called `kmeans()`. There are two required arguments. x and centers. It initially signs points of your center groups. Clustering vector tells you which value/point is associated with what cluster.
+```{r}
+k <- kmeans(z, centers = 2)
+k
+```
+>Q. How big are the clusters(i.e their size)?
+
+```{r}
+k$size
+```
+
+> Q. What clusters do my data points reside in?
+
+```{r}
+k$cluster
+```
+
+> Q. Make a plot of our data colored bu cluster assignment - i.e make a result figure. Vectorization will take/recylce the shortest thing.
+
+```{r}
+plot(z, col = c("black", "green"))
+```
+
+```{r}
+plot(z, col = k$cluster)
+points(k$centers, col = "purple", pch = 11)
+```
+
+>Q. Make kmeans cluster to 4 from 2:
+
+```{r}
+k <- kmeans(z, centers = 4)
+k
+plot(z, col = c("black", "green", "blue", "orange"))
+plot(z, col = k$cluster)
+points(k$centers, col = "purple", pch = 11)
+```
+
+>Q. Run kmeans with centers (i.e values of k) equal 1 to 6.
+
+```{r}
+k$tot.withinss
+```
+```{r}
+k1 <- kmeans(z, centers = 1)$tot.withinss
+k2 <- kmeans(z, centers = 2)$tot.withinss
+k3 <- kmeans(z, centers = 3)$tot.withinss
+k4 <- kmeans(z, centers = 4)$tot.withinss
+k5 <- kmeans(z, centers = 5)$tot.withinss
+k6 <- kmeans(z, centers = 6)$tot.withinss
+
+ans <- c(k1, k2, k3, k4, k5, k6)
+ans
+```
+
+or use a for loop:
+
+```{r}
+ans <- NULL
+for (i in 1:6) {
+ ans <- c(ans, kmeans(z, centers = i)$tot.withinss)
+}
+
+ans
+```
+
+```{r}
+plot(ans, typ = "b")
+```
+
+## Hierarchical Clustering
+
+The main function in "base" R for this is called `hclust()`
+
+```{r}
+d <- dist(z)
+hc <- hclust(d)
+hc
+```
+
+Plots a Cluster Dendrogram, abline draws a line:
+```{r}
+plot(hc)
+abline(h=7, col = "red")
+```
+
+To obtain clusters from our `hclust` result object **hc** we "cut" the tree to yield different sub brances for this use `cutree()`.
+
+```{r}
+grps <- cutree(hc, h = 7)
+grps
+```
+
+```{r}
+plot(z, col = grps)
+```
+```{r}
+library(pheatmap)
+pheatmap(z)
+```
+
+
+## Principal Component Analysis (PCA)
+PCA is a dimensional reduction, to take all things measuring and projects them on PC axes. PC1 is the "best fit" of the data, that maximizes the data spread/variance in data. It captures the most variance.PC2 captures the rest of the variance. PC looks to see the left/right and up/down variance easier to see. Think of a big funnel, and putting all your datta in it.
+
+## 17D, Class 7
+
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+```
+
+>Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+```{r}
+nrow(x)
+ncol(x)
+```
+
+```{r}
+head(x, 6)
+```
+
+Fix the rownames:
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x, 6)
+```
+
+```{r}
+dim(x)
+```
+
+```{r}
+x <- read.csv(url, row.names = 1)
+head(x, 6)
+```
+
+> Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+I like the row.names = 1 since it is more concise.
+
+
+Pick random colors:
+```{r}
+rainbow(5)
+```
+
+```{r}
+barplot(as.matrix(x), beside=TRUE, col=rainbow(nrow(x)))
+```
+
+> Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+```{r}
+barplot(as.matrix(x), beside=FALSE, col=rainbow(nrow(x)))
+```
+
+```{r}
+library(tidyr)
+x_long <- x |> 
+          tibble::rownames_to_column("Food") |> 
+          pivot_longer(cols = -Food, 
+                       names_to = "Country", 
+                       values_to = "Consumption")
+dim(x_long)
+```
+
+```{r}
+head(x_long)
+```
+
+```{r}
+library(ggplot2)
+ggplot(x_long) +
+  aes(Country, Consumption, fill = Food) +
+  geom_col(position = "dodge") +
+  theme_bw()
+```
+
+> Q4: Changing what optional argument in the above ggplot() code results in a stacked barplot figure?
+
+Change the geom_col(position = "dodge") to just geom_col().  
+
+```{r}
+ggplot(x_long) +
+  aes(Country, Consumption, fill = Food) +
+  geom_col() +
+  theme_bw()
+```
+
+
+> Q5: We can use the pairs() function to generate all pairwise plots for our countries. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+The code on the bottom is comparing how similar each topic is between the 4 lands So the top left graphs are identical as it compares the same thing, England v Wales, where as the graph in the top right is different as it compared England v Northern Ireland.
+
+```{r}
+pairs(x, col=rainbow(nrow(x)), pch=16)
+```
+
+```{r}
+pheatmap( as.matrix(x) )
+```
+
+
+
+> Q6 after generating heat plot:
+It looks like wales and england are quite similar in their consumption of these foods, it is still quite difficult to tell what is going on in the dataset.
+
+This would suggest that N. Ireland consumes less other meat compared to the other areas, Scotland consumes less potatoes, but consumes the mose soft drinks, Wales consumes the most cereals. 
+
+
+## PCA to the rescue
+
+> Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+The main function in "base" R for PCA is called `prcomp()`.
+As we want to do PCA on the food data, for the different countries, we will want the foods in the columns.
+
+```{r}
+t(x)
+```
+
+```{r}
+pca <- prcomp(t(x))
+summary(pca)
+```
+
+Our result ojecy is called `pca` and it has a `$x` component that we will look at first
+
+```{r}
+pca$x
+```
+
+```{r}
+
+ggplot(pca$x) + aes(PC1, PC2, label = rownames(pca$x)) + geom_point() + geom_text()
+```
+
+```{r}
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+```
+
+
+Another major result of PCA is the so-called "variable loadings" or `$rotation` that tells us how the origional variables (foods) contribute to PCs (i.e. our new axis).
+
+```{r}
+pk <- pca$rotation
+pk
+```
+
+```{r}
+ggplot(pk) + aes(PC1, rownames(pk)) + geom_col()
+```
+
+```{r}
+url2 <- "https://tinyurl.com/expression-CSV"
+rna.data <- read.csv(url2, row.names=1)
+head(rna.data)
+```
+
+> Q9: How many genes and samples are in this data set?
+
+```{r}
+nrow(rna.data)
+```
+
+There are 100 genes

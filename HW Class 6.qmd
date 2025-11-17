@@ -1,0 +1,54 @@
+---
+title: "HW Class 6"
+author: Jada Brown (PID: A15573784)
+format: pdf
+---
+
+```{r}
+library(bio3d)
+s1 <- read.pdb("4AKE") # kinase with drug
+s2 <- read.pdb("1AKE") # kinase no drug
+s3 <- read.pdb("1E4Y") # kinase with drug
+
+s1
+```
+
+## Q1. What type of object is returned from the read.pdb() function? 
+A variable that 
+
+
+```{r}
+s1.chainA <- trim.pdb(s1, chain="A", elety="CA")
+s2.chainA <- trim.pdb(s2, chain="A", elety="CA")
+s3.chainA <- trim.pdb(s1, chain="A", elety="CA")
+
+s1.chainA
+```
+
+## Q2. What does the trim.pdb() function do?
+The `trim.pdb()` function trims the data by showing a information about the specific domain of the protein of interest.
+
+```{r}
+s1.b <- s1.chainA$atom$b
+s2.b <- s2.chainA$atom$b
+s3.b <- s3.chainA$atom$b
+
+s1.b
+```
+```{r}
+plotb3(s1.b, s1.chainA, typ="l", ylab="Bfactor")
+plotb3(s2.b, sse=s2.chainA, typ="l", ylab="Bfactor")
+plotb3(s3.b, sse=s3.chainA, typ="l", ylab="Bfactor")
+```
+
+## Q3. What input parameter would turn off the marginal black and grey rectangles in the plots and what do they represent in this case? 
+Remove the Marginal black and grey rectangles in the plots by deleting "sse
+
+## Q4. What would be a better plot to compare across the different proteins?
+
+
+
+## Q5. Which proteins are more similar to each other in their B-factor trends. How could you quantify this? 
+
+
+

@@ -1,0 +1,49 @@
+---
+title: "Lab 11: Structure Prediction with AlphaFold2"
+author: "Jada Brown (PID: A15573784)"
+format: pdf
+---
+
+## Bckground
+
+We saw that the PDB has 209,886 entries (Oct/Nov). UniProtKB (i.e. protein sequence database) has 199,579,901 entries.
+
+```{r}
+209886/199579901 *100
+```
+
+So the PDB only has 0.1% coverage of the main sequence database.
+
+Enter AlphaFold database (AFDB). <https://alphafold.ebi.ac.uk/> that attempts to probive computed models for all sequences in uniprot.
+
+"AlphaFold DB provides open access to over 200 million protein structure predictions to accelerate scientific research."
+
+## AlphaFold
+
+AlphaFold has 3 main outputs:
+1. Predicted coordinates (PDB files)
+2. A local quality score called *pLDDT* (on for each amino acid)
+3. A second quality score *PAE* - Predicted aligned eror (for each pair of amino acid)
+
+We can run AlphaFold ourselves if we are not happy with AFDB (i.e. no coverage or poor model).
+
+## Interpreting/Analyzing AF results in R
+
+```{r}
+results_dir <- "HIVPR_dimer23119"
+```
+
+```{r}
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+```
+
+```{r}
+library(bio3d)
+library(bio3dview)
+
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+view.pdbs(pdbs)
+```
+

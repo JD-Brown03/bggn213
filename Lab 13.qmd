@@ -1,0 +1,202 @@
+---
+title: "Lab 13: Pathway Analysis from RNA-Seq Results"
+author: "Jada Brown (PID: A15573784)"
+format: pdf
+---
+
+## Background
+
+Today we will run through a omplrete RNASeq analysis. 
+
+The data for hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+
+The authors report on differential analysis of lung fibroblasts in response to loss of the developmental transcription factor HOXA1. Their results and others indicate that HOXA1 is required for lung fibroblast and HeLa cell cycle progression. In particular their analysis show that "loss of HOXA1 results in significant expression level changes in thousands of individual transcripts, along with isoform switching events in key regulators of the cell cycle". For our session we have used their Sailfish gene-level estimated counts and hence are restricted to protein-coding genes only.
+
+
+```{r}
+library(DESeq2)
+```
+
+
+## Data Import
+
+```{r}
+metaFile <- read.csv("./GSE37704_metadata.csv", row.names = 1)
+countFile <- read.csv("./GSE37704_featurecounts.csv", row.names = 1)
+
+head(metaFile)
+head(countFile)
+```
+
+> Q1. Complete the code below to remove the troublesome first column from countData:
+
+```{r}
+countData <- as.matrix(countFile[,-1])
+head(countData)
+```
+
+> Q2. Complete the code below to filter countData to exclude genes (i.e. rows) where we have 0 read count across all samples (i.e. columns).
+
+```{r}
+#zero.vals <- which(countData[,]==0, arr.ind=TRUE)[,1]
+#counts <- countData[-zero.vals,]
+#head(counts)
+
+count <- countData[rowSums(countData) > 0, ]
+```
+
+```{r}
+test_cols <- !all(colnames(countData) == metaFile$id)
+
+```
+
+Check correspondance of `metadata` and `counts` (ex. that the columns in `counts` match the rows in the metadata)
+
+## Setup for DESeq
+
+```{r}
+dds = DESeqDataSetFromMatrix(countData=count,
+                             colData = metaFile,
+                             design=~condition)
+dds = DESeq(dds)
+```
+
+## Run DESeq
+```{r}
+dds <- DESeq(dds)
+```
+
+
+## Get Results
+
+```{r}
+res <- results(dds)
+```
+
+```{r}
+head(res)
+```
+count <- count[rowSums(count) > 0, ]
+
+## Add annotation
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+```{r}
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys= row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",        
+                     column="ENTREZID",          
+                     multiVals="first")
+
+res$genename <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",        
+                     column="GENENAME",          
+                     multiVals="first")
+
+head(res, 10)
+```
+
+
+
+## Visualize results
+
+```{r}
+library(ggplot2)
+
+my_cols <- rep("gray", nrow(res))
+my_cols[ abs(res$log2FoldChange) > 2 ]  <- "blue" 
+
+ggplot(res) + aes(log2FoldChange, -log(padj)) + geom_point(col=my_cols) + geom_vline(xintercept = c(-2,2), col = "red") + geom_hline(yintercept = -log(0.05), col="red")
+```
+
+
+## Pathway analysis
+
+
+```{r}
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+```
+
+For **gage** we want a named vector of importance
+
+```{r}
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+head(kegg.sets.hs, 3)
+```
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+head(keggres$less)
+```
+
+```{r}
+library(pathview)
+```
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+![Pathview example](hsa04110.pathview.png)
+
+## Let's tru GO analysis
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+gobpsets = go.sets.hs[go.subs.hs$BP]
+
+gobpres = gage(foldchanges, gsets=gobpsets)
+
+head(gobpres$less)
+```
+## Reactome
+
+Some folks really like Reactome online (their webpage viewer) rather than the R package of the same name (available from bioconductor). 
+
+To use the website viewer we want to upload our set of gene symbol for the genes we want to focus on (here those with a p-value below 0.05.)
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+print(paste("Total number of significant genes:", length(sig_genes)))
+```
+
+```{r}
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+
+## Save results
+
+
+```{r}
+write.csv(res, file = "myresults.csv")
+save(res, file = "my_results.RData")
+```
